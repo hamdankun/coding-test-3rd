@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   postgres:
@@ -14,7 +14,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/init_pgvector.sql:/docker-entrypoint-initdb.d/init_pgvector.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U funduser"]
+      test: ["CMD-SHELL", "pg_isready -U funduser -d funddb"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -56,8 +56,8 @@ services:
         condition: service_healthy
     command: >
       sh -c "
-        python app/db/init_db.py &&
-        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+         python -m app.db.init_db &&
+         uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
       "
 
   frontend:

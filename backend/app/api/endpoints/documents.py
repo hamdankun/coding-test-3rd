@@ -9,6 +9,7 @@ import shutil
 from datetime import datetime
 from app.db.session import get_db
 from app.models.document import Document
+from app.models.fund import Fund
 from app.schemas.document import (
     Document as DocumentSchema,
     DocumentUploadResponse,
@@ -44,6 +45,32 @@ async def upload_document(
             detail=f"File size exceeds maximum allowed size of {settings.MAX_UPLOAD_SIZE} bytes"
         )
     
+    # If fund_id not provided, create default fund or use first fund
+    if not fund_id:
+        existing_fund = db.query(Fund).first()
+        if existing_fund:
+            fund_id = existing_fund.id
+        else:
+            # Create a default fund if none exist
+            default_fund = Fund(
+                name="Default Fund",
+                gp_name="Unknown GP",
+                fund_type="Unknown",
+                vintage_year=2024
+            )
+            db.add(default_fund)
+            db.commit()
+            db.refresh(default_fund)
+            fund_id = default_fund.id
+    else:
+        # Verify fund exists
+        fund = db.query(Fund).filter(Fund.id == fund_id).first()
+        if not fund:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Fund with ID {fund_id} not found. Please create a fund first."
+            )
+    
     # Create upload directory if it doesn't exist
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     
@@ -71,7 +98,7 @@ async def upload_document(
         process_document_task,
         document.id,
         file_path,
-        fund_id or 1  # Default fund_id if not provided
+        fund_id
     )
     
     return DocumentUploadResponse(
@@ -94,8 +121,8 @@ async def process_document_task(document_id: int, file_path: str, fund_id: int):
         document.parsing_status = "processing"
         db.commit()
         
-        # Process document
-        processor = DocumentProcessor()
+        # Process document (pass db session to DocumentProcessor)
+        processor = DocumentProcessor(db=db)
         result = await processor.process_document(file_path, document_id, fund_id)
         
         # Update status

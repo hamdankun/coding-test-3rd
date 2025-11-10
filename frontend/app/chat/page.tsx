@@ -1,73 +1,75 @@
-'use client'
+"use client";
 
-import { useState, useRef, useEffect } from 'react'
-import { Send, Loader2, FileText } from 'lucide-react'
-import { chatApi } from '@/lib/api'
-import { formatCurrency } from '@/lib/utils'
+import { useState, useRef, useEffect } from "react";
+import { Send, Loader2, FileText } from "lucide-react";
+import { chatApi } from "@/lib/api";
+import { formatCurrency } from "@/lib/utils";
 
 interface Message {
-  role: 'user' | 'assistant'
-  content: string
-  sources?: any[]
-  metrics?: any
-  timestamp: Date
+  role: "user" | "assistant";
+  content: string;
+  sources?: any[];
+  metrics?: any;
+  timestamp: Date;
 }
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [conversationId, setConversationId] = useState<string>()
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string>();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Create conversation on mount
-    chatApi.createConversation().then(conv => {
-      setConversationId(conv.conversation_id)
-    })
-  }, [])
+    chatApi.createConversation().then((conv) => {
+      setConversationId(conv.conversation_id);
+    });
+  }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() || loading) return
+    e.preventDefault();
+    if (!input.trim() || loading) return;
 
     const userMessage: Message = {
-      role: 'user',
+      role: "user",
       content: input,
-      timestamp: new Date()
-    }
+      timestamp: new Date(),
+    };
 
-    setMessages(prev => [...prev, userMessage])
-    setInput('')
-    setLoading(true)
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setLoading(true);
 
     try {
-      const response = await chatApi.query(input, undefined, conversationId)
-      
+      const response = await chatApi.query(input, undefined, conversationId);
+
       const assistantMessage: Message = {
-        role: 'assistant',
+        role: "assistant",
         content: response.answer,
         sources: response.sources,
         metrics: response.metrics,
-        timestamp: new Date()
-      }
+        timestamp: new Date(),
+      };
 
-      setMessages(prev => [...prev, assistantMessage])
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error: any) {
       const errorMessage: Message = {
-        role: 'assistant',
-        content: `Sorry, I encountered an error: ${error.response?.data?.detail || error.message}`,
-        timestamp: new Date()
-      }
-      setMessages(prev => [...prev, errorMessage])
+        role: "assistant",
+        content: `Sorry, I encountered an error: ${
+          error.response?.data?.detail || error.message
+        }`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="max-w-5xl mx-auto h-[calc(100vh-12rem)]">
@@ -89,9 +91,7 @@ export default function ChatPage() {
               <h3 className="text-lg font-medium text-gray-900 mb-2">
                 Start a conversation
               </h3>
-              <p className="text-gray-600 mb-6">
-                Try asking questions like:
-              </p>
+              <p className="text-gray-600 mb-6">Try asking questions like:</p>
               <div className="space-y-2 max-w-md mx-auto">
                 <SampleQuestion
                   question="What is the current DPI?"
@@ -146,20 +146,18 @@ export default function ChatPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function MessageBubble({ message }: { message: Message }) {
-  const isUser = message.role === 'user'
+  const isUser = message.role === "user";
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-3xl ${isUser ? 'ml-12' : 'mr-12'}`}>
+    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+      <div className={`max-w-3xl ${isUser ? "ml-12" : "mr-12"}`}>
         <div
           className={`rounded-lg p-4 ${
-            isUser
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-900'
+            isUser ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900"
           }`}
         >
           <p className="whitespace-pre-wrap">{message.content}</p>
@@ -168,26 +166,28 @@ function MessageBubble({ message }: { message: Message }) {
         {/* Metrics Display */}
         {message.metrics && (
           <div className="mt-3 bg-white border border-gray-200 rounded-lg p-4">
-            <h4 className="font-semibold text-sm text-gray-700 mb-2">Calculated Metrics</h4>
+            <h4 className="font-semibold text-sm text-gray-700 mb-2">
+              Calculated Metrics
+            </h4>
             <div className="grid grid-cols-2 gap-3">
               {Object.entries(message.metrics).map(([key, value]) => {
-                if (value === null || value === undefined) return null
-                
-                let displayValue: string
-                if (typeof value === 'number' && key.includes('irr')) {
-                  displayValue = `${value.toFixed(2)}%`
-                } else if (typeof value === 'number') {
-                  displayValue = formatCurrency(value)
+                if (value === null || value === undefined) return null;
+
+                let displayValue: string;
+                if (typeof value === "number" && key.includes("irr")) {
+                  displayValue = `${value.toFixed(2)}%`;
+                } else if (typeof value === "number") {
+                  displayValue = formatCurrency(value);
                 } else {
-                  displayValue = String(value)
+                  displayValue = String(value);
                 }
-                
+
                 return (
                   <div key={key} className="text-sm">
-                    <span className="text-gray-600">{key.toUpperCase()}:</span>{' '}
+                    <span className="text-gray-600">{key.toUpperCase()}:</span>{" "}
                     <span className="font-semibold">{displayValue}</span>
                   </div>
-                )
+                );
               })}
             </div>
           </div>
@@ -203,7 +203,9 @@ function MessageBubble({ message }: { message: Message }) {
               <div className="px-4 py-3 space-y-2 border-t">
                 {message.sources.slice(0, 3).map((source, idx) => (
                   <div key={idx} className="text-xs bg-gray-50 p-2 rounded">
-                    <p className="text-gray-700 line-clamp-2">{source.content}</p>
+                    <p className="text-gray-700 line-clamp-2">
+                      {source.content}
+                    </p>
                     {source.score && (
                       <p className="text-gray-500 mt-1">
                         Relevance: {(source.score * 100).toFixed(0)}%
@@ -221,10 +223,16 @@ function MessageBubble({ message }: { message: Message }) {
         </p>
       </div>
     </div>
-  )
+  );
 }
 
-function SampleQuestion({ question, onClick }: { question: string; onClick: () => void }) {
+function SampleQuestion({
+  question,
+  onClick,
+}: {
+  question: string;
+  onClick: () => void;
+}) {
   return (
     <button
       onClick={onClick}
@@ -232,5 +240,5 @@ function SampleQuestion({ question, onClick }: { question: string; onClick: () =
     >
       &quot;{question}&quot;
     </button>
-  )
+  );
 }
